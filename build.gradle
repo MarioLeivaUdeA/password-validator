@@ -44,6 +44,22 @@ jacocoTestReport {
     }
 }
 
+jacocoTestCoverageVerification {
+    violationRules {
+        rule {
+            limit {
+                counter = 'LINE'
+                value = 'COVEREDRATIO'
+                minimum = 0.80
+            }
+        }
+    }
+}
+
+check.dependsOn jacocoTestCoverageVerification
+
+
+
 sonar {
     properties {
         property 'sonar.organization', '1193212909wmle'
@@ -53,4 +69,8 @@ sonar {
                 layout.buildDirectory.file('reports/jacoco/test/jacocoTestReport.xml').get().asFile.absolutePath
         property 'sonar.qualitygate.wait', 'true'
     }
+}
+
+tasks.named('sonar') {
+    dependsOn tasks.named('jacocoTestReport')
 }
