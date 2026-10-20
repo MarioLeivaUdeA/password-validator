@@ -49,7 +49,7 @@ $env:SONAR_TOKEN = '<token de SonarCloud>'
 .\gradlew.bat clean test checkstyleMain checkstyleTest jacocoTestReport sonar
 ```
 
-La clave existente del proyecto es `MarioLeivaUdeA_password-validator`. No se debe guardar el token en el repositorio. El análisis espera el resultado del Quality Gate; si no se cumple, el comando de análisis falla. GitHub Actions también publica el resultado del análisis y SonarCloud puede mostrar el estado del Quality Gate en los pull requests.
+No se debe guardar el token en el repositorio. El análisis espera el resultado del Quality Gate; si no se cumple, el comando de análisis falla. GitHub Actions también publica el resultado del análisis y SonarCloud puede mostrar el estado del Quality Gate en los pull requests.
 
 ### Quality Gate, Quality Profile y complejidad
 
