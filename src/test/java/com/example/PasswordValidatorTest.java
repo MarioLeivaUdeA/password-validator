@@ -28,7 +28,7 @@ class PasswordValidatorTest {
 
     @Test
     void missingSpecialCharShouldReturnFalse() {
-        String password = "Abc12345*";
+        String password = "Abc12345";
         boolean result = validator.isValid(password);
         assertFalse(result, "Falta carácter especial");
     }
