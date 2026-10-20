@@ -1,75 +1,90 @@
 # Password Validator
 
-Proyecto Java con Gradle para validar contraseñas, ejecutar pruebas unitarias y de rendimiento, revisar estilo con Checkstyle, generar cobertura con JaCoCo y analizar calidad en SonarCloud.
+Aplicación Java pequeña para validar reglas básicas de contraseñas. Usa Gradle
+para compilar, ejecutar pruebas, verificar estilo y generar cobertura.
 
-## Requisitos
+## Arquitectura
 
-- JDK 8 o superior
-- Gradle Wrapper incluido (Gradle 8.10.2)
-- JDK 17 recomendado para desarrollo y CI
-
-## Comandos
-
-En Windows:
+El proyecto no implementa una arquitectura por capas: su alcance es una sola
+clase de dominio, sin API, interfaz gráfica ni persistencia.
 
 ```text
-.\gradlew.bat clean test
-.\gradlew.bat checkstyleMain checkstyleTest
-.\gradlew.bat jacocoTestReport
+src/
+  main/java/com/example/PasswordValidator.java
+  test/java/com/example/PasswordValidatorTest.java
+  test/java/com/example/PasswordValidatorPerformanceTest.java
+config/checkstyle/checkstyle.xml
+gradle/wrapper/                 Wrapper de Gradle
+build.gradle                    Plugins, dependencias y tareas
+settings.gradle                 Nombre del proyecto
 ```
 
-En PowerShell es necesario anteponer `.` y `\` para ejecutar un archivo ubicado
-en la carpeta actual. `JAVA_HOME` debe apuntar a la carpeta del JDK, por ejemplo:
+`PasswordValidator.java` es el código fuente. Gradle genera
+`PasswordValidator.class` al compilar; ese bytecode es un artefacto derivado,
+no una segunda copia editable. Los archivos de `build/` y `.gradle/` se
+regeneran localmente y no deben versionarse.
+
+La clase principal expone dos operaciones:
+
+- `isValid`: exige al menos ocho caracteres, mayúscula, minúscula, dígito y
+  carácter especial.
+- `getStrengthScore`: suma un punto por cada una de esas cinco reglas.
+
+Las pruebas funcionales verifican resultados y puntaje. La prueba de
+rendimiento realiza validaciones repetidas; no sustituye una herramienta de
+benchmark especializada.
+
+## Calidad y reportes locales
+
+Se requiere JDK 17 para compilar y ejecutar las pruebas con el Gradle Wrapper
+incluido (Gradle 8.10.2). En PowerShell:
 
 ```powershell
-$env:JAVA_HOME = 'C:\Program Files\Microsoft\jdk-17.0.20.8-hotspot'
-.\gradlew.bat build
+.\gradlew.bat clean test checkstyleMain checkstyleTest jacocoTestReport
 ```
 
-Después de instalar o configurar Java, abre un terminal nuevo para que VS Code
-reciba las variables de entorno actualizadas.
-
-Los reportes se generan en:
+Los reportes quedan bajo `build/`:
 
 - Pruebas: `build/reports/tests/test/index.html`
 - Checkstyle: `build/reports/checkstyle/`
-- Cobertura JaCoCo: `build/reports/jacoco/test/html/index.html`
-- Cobertura JaCoCo XML (consumido por SonarCloud): `build/reports/jacoco/test/jacocoTestReport.xml`
+- JaCoCo HTML: `build/reports/jacoco/test/html/index.html`
+- JaCoCo XML: `build/reports/jacoco/test/jacocoTestReport.xml`
 
-## Integración con SonarCloud
+Checkstyle aplica las reglas declaradas en
+`config/checkstyle/checkstyle.xml`. JaCoCo mide cobertura; SonarCloud importa
+su XML para mostrarla junto con las métricas estáticas. El último resultado
+local verificado tuvo todas las pruebas y Checkstyle aprobados. La cobertura de
+ramas se debe revisar en el reporte generado, no inferirse de la cobertura de
+líneas.
 
-El repositorio `MarioLeivaUdeA/password-validator` ya está en GitHub. Para conectarlo:
+## Análisis manual en SonarCloud
 
-1. En SonarCloud, importa ese repositorio en la organización `1193212909wmle`. La importación crea el proyecto y muestra su clave (`project key`).
-2. Genera un token en SonarCloud y guárdalo en GitHub como secreto del repositorio llamado `SONAR_TOKEN`.
-3. Ejecuta el workflow `SonarCloud` o, localmente, configura el token y ejecuta el escaneo:
+El proyecto SonarCloud ya existe en la organización `1193212909wmle`. La clave
+de proyecto configurada en Gradle es `MarioLeivaUdeA_password-validator`.
+El análisis se ejecuta bajo demanda; este repositorio no requiere un workflow
+de GitHub Actions para ello.
+
+El escáner de SonarCloud requiere JDK 21 o superior. Con el JDK requerido
+seleccionado y un token guardado fuera del repositorio:
 
 ```powershell
 $env:SONAR_TOKEN = '<token de SonarCloud>'
 .\gradlew.bat clean test checkstyleMain checkstyleTest jacocoTestReport sonar
 ```
 
-No se debe guardar el token en el repositorio. El análisis espera el resultado del Quality Gate; si no se cumple, el comando de análisis falla. GitHub Actions también publica el resultado del análisis y SonarCloud puede mostrar el estado del Quality Gate en los pull requests.
+No se debe escribir el valor del token en archivos versionados ni en comandos
+que queden guardados en el historial. El secreto configurado en GitHub no se
+usa automáticamente en una ejecución local.
 
-### Quality Gate, Quality Profile y complejidad
+En SonarCloud:
 
-- **Quality Gate**: condiciones de aceptación del análisis, como cobertura, duplicación, bugs o mantenibilidad. El resultado se configura y consulta en SonarCloud. Si se quiere bloquear merges, se debe exigir el check de SonarCloud como regla de protección de la rama.
-- **Quality Profile**: conjunto de reglas activas para Java; determina qué issues se reportan. Se selecciona/configura en SonarCloud para el proyecto u organización.
-- **Complejidad ciclomática**: SonarCloud la reporta por método y para el código, considerando decisiones y operadores lógicos. Se puede añadir al Quality Gate si se define una condición para esa métrica.
-- **Complejidad cognitiva**: SonarCloud la reporta como métrica de mantenibilidad; refleja lo difícil que resulta seguir el flujo de control. Un umbral por método también puede configurarse como regla del Quality Profile.
-- **Cobertura**: JaCoCo registra qué líneas e instrucciones ejecutan las pruebas. SonarCloud ingiere el XML generado; no ejecuta JaCoCo por sí mismo.
+- El **Quality Profile** define las reglas activas para Java.
+- El **Quality Gate** compara las métricas del análisis con sus condiciones y
+  publica el resultado (`Passed`/`Failed`).
+- La complejidad **ciclomática** cuenta rutas de decisión; la **cognitiva**
+  estima la dificultad de seguir el flujo. SonarCloud muestra ambas métricas.
+- JaCoCo provee la cobertura de pruebas; no mide complejidad cognitiva.
 
-## Estado de código y análisis local
-
-- La aplicación contiene `PasswordValidator.java`, una clase pequeña con validación de longitud, mayúscula, minúscula, dígito y carácter especial, además de una puntuación de 0 a 5.
-- `PasswordValidator.class` es bytecode compilado desde el archivo `.java` por Gradle; no es una segunda implementación. Está en `build/classes/java/main`, que es salida de compilación y se puede regenerar.
-- Checkstyle aplica reglas de indentación, imports no usados, Javadoc y longitud de método. El último reporte disponible encontró cero violaciones en código de producción y pruebas.
-- JaCoCo genera cobertura local y SonarCloud importará ese reporte para mostrar la cobertura y evaluarla según el Quality Gate elegido. En la última ejecución: 100% de líneas e instrucciones, y 79,2% de ramas (5 ramas no cubiertas en `getStrengthScore`).
-- El proyecto existente de SonarCloud tiene la clave `MarioLeivaUdeA_password-validator`; el workflow usa el secreto `SONAR_TOKEN` de GitHub para autenticarse.
-- La prueba funcional que fallaba usaba `*`, que sí es un carácter especial aceptado; la prueba ahora usa una contraseña sin especial. Se amplió el límite temporal de las pruebas de rendimiento para reducir falsos fallos por variación del entorno.
-
-## Estado verificado
-
-Entorno comprobado: Gradle Wrapper 8.10.2 y JDK Microsoft OpenJDK 17.0.20 LTS.
-
-El validador considera válida una contraseña con al menos ocho caracteres, una mayúscula, una minúscula, un dígito y un carácter especial. `getStrengthScore` devuelve de cero a cinco puntos, uno por cada regla satisfecha.
+Una ejecución anterior del análisis en SonarCloud mostró Quality Gate `OK`,
+complejidad ciclomática 13 y cognitiva 8. Esos datos pertenecen a ese análisis
+y no confirman un análisis nuevo de los cambios posteriores.

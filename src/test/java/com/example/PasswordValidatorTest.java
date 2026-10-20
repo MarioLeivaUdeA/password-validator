@@ -41,6 +41,16 @@ class PasswordValidatorTest {
     }
 
     @Test
+    void strengthScoreShouldCountOnlySatisfiedRules() {
+        assertAll(
+                () -> assertEquals(4, validator.getStrengthScore("Ab1!")),
+                () -> assertEquals(2, validator.getStrengthScore("abcdefgh")),
+                () -> assertEquals(2, validator.getStrengthScore("ABCDEFGH")),
+                () -> assertEquals(3, validator.getStrengthScore("Abcdefgh")),
+                () -> assertEquals(4, validator.getStrengthScore("Abcdefg1")));
+    }
+
+    @Test
     void nullPasswordShouldReturnFalseAndScoreZero() {
         String password = null;
         boolean isValid = validator.isValid(password);
