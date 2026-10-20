@@ -25,6 +25,6 @@ jobs:
           java-version: '17'
 
       - name: Run tests, static checks, coverage, and SonarCloud analysis
-        run: ./gradlew clean test checkstyleMain checkstyleTest jacocoTestReport sonar
+        run: bash ./gradlew clean test checkstyleMain checkstyleTest jacocoTestReport sonar
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
